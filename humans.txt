@@ -1,0 +1,11 @@
+/* Serenity App */
+/* A calming ambient radio player */
+
+/* TEAM */
+  Developer: Serenity Dev
+  Role: Full Stack
+  Site: https://serenity-app.com
+
+/* THANKS */
+  Google Fonts (Outfit)
+  Internet Radio Stations (Jazz24, etc)

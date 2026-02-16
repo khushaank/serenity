@@ -1,0 +1,24 @@
+# Serenity App
+
+> A calming ambient radio player combining soothing music streams with guided breathing exercises.
+
+## Overview
+Serenity is designed to help users relax, focus, or sleep by providing instant access to high-quality ambient, jazz, and classical radio streams.
+
+## Features
+- **Instant Play**: No login required.
+- **Visual Breathing**: A synchronized visual breathing guide (4s inhale / 4s exhale).
+- **Curated Stations**:
+  - Jazz24
+  - Venice Classic Radio
+  - KUSC Classical
+  - Birdsong Radio (Nature)
+  - Ambient Sleeping Pill
+
+## Architecture
+- Single Page Application (HTML/CSS/JS)
+- Service Worker for offline caching of assets
+- HTML5 Audio for streaming
+
+## Usage
+Click 'Play' to start the music. Click 'Next' to cycle through stations. Follow the circle's expansion and contraction for breathing.

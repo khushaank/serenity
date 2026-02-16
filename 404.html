@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 - Serenity</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500&display=swap");
+      :root {
+        --glass-bg: rgba(255, 255, 255, 0.1);
+        --glass-border: rgba(255, 255, 255, 0.2);
+        --text-color: rgba(255, 255, 255, 0.9);
+        --accent-color: rgba(255, 255, 255, 0.8);
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Outfit", sans-serif;
+        color: var(--text-color);
+        overflow: hidden;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: #000;
+      }
+      #bg-video {
+        position: fixed;
+        top: 0;
+        left: 0;
+        min-width: 100%;
+        min-height: 100%;
+        z-index: -1;
+        object-fit: cover;
+        filter: brightness(0.5) blur(8px);
+      }
+      .container {
+        text-align: center;
+        z-index: 10;
+        max-width: 600px;
+        width: 90%;
+        padding: 3rem;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        border-radius: 24px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        animation: fadeIn 1.5s ease-out;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      h1 {
+        font-weight: 200;
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+        letter-spacing: 2px;
+      }
+      p {
+        font-weight: 300;
+        font-size: 1.1rem;
+        opacity: 0.8;
+        margin-bottom: 2rem;
+      }
+      .btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        cursor: pointer;
+        font-family: "Outfit", sans-serif;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        padding: 12px 32px;
+        border-radius: 30px;
+        display: inline-block;
+      }
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+    </style>
+  </head>
+  <body oncontextmenu="return false;">
+    <video id="bg-video" autoplay loop muted playsinline aria-hidden="true">
+      <source src="./video.mp4" type="video/mp4" />
+    </video>
+    <main class="container">
+      <h1>404</h1>
+      <p>This page has drifted away.</p>
+      <a href="./index.html" class="btn">Return to Serenity</a>
+    </main>
+  </body>
+</html>
