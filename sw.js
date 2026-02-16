@@ -1,8 +1,13 @@
-const CACHE_NAME = "serenity-v1";
+const CACHE_NAME = "serenity-v2";
 const ASSETS = [
   "./",
   "./index.html",
-  "./video.mp4", // Assuming video is local. If it's large, we might want to be careful, but user asked for SW.
+  "./video.mp4",
+  "./manifest.json",
+  "./favicon.svg",
+  "./humans.txt",
+  "./llms.txt",
+  "./404.html",
 ];
 
 self.addEventListener("install", (event) => {
