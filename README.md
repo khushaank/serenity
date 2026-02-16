@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Serenity
 
 Calming ambient radio player and guided breathing exercise web application.
@@ -30,3 +31,7 @@ This project and its original content are the property of Khushaank.
 - **Radio Sources**: Stereoscenic, KUSC, Birdsong.fm, InternetAudioGuy
 - **Icons**: SVG Icons
 - **Fonts**: Outfit (Google Fonts)
+=======
+# serenity
+This is a website that will help to make you calm. A GO TO APP.
+>>>>>>> 78fe145e2ba7b930a6b7fcd6d0b3bded336327d3
