@@ -340,65 +340,98 @@
         { name: "Birdsong Radio", url: "https://edge.birdsong.fm/birdsong" },
         { name: "Ambient Sleep", url: "https://radio.stereoscenic.com/asp-h" },
       ];
+
       playBtn.addEventListener("click", togglePlay);
       nextBtn.addEventListener("click", playNext);
       volumeSlider.addEventListener("input", (e) => {
         audio.volume = e.target.value / 100;
       });
-      function setStation(e) {
-        currentStationIndex = e;
-        audio.src = stations[currentStationIndex].url;
+
+      // Handle stream errors
+      audio.addEventListener("error", function (e) {
+        console.error("Stream Error:", e);
+        statusDiv.innerText = "Stream Unavailable";
+        updateBtn(false);
+        isPlaying = false;
+        document.body.classList.remove("focused");
+      });
+
+      function setStation(index) {
+        currentStationIndex = index;
+        const station = stations[currentStationIndex];
+
+        // Reset and load new source
+        audio.pause();
+        audio.src = station.url;
+        audio.load();
+
         if (isPlaying) {
-          statusDiv.innerText = "Loading...";
-          audio
-            .play()
-            .then(() => {
-              statusDiv.innerText = stations[currentStationIndex].name;
-              updateBtn(!0);
-            })
-            .catch(() => {
-              statusDiv.innerText = "Error";
-              updateBtn(!1);
-              isPlaying = !1;
-            });
+          statusDiv.innerText = "Loading " + station.name + "...";
+          const playPromise = audio.play();
+
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                statusDiv.innerText = station.name;
+                updateBtn(true);
+                document.body.classList.add("focused");
+              })
+              .catch((error) => {
+                console.log("Playback prevented or failed:", error);
+                statusDiv.innerText = "Error: " + station.name;
+                updateBtn(false);
+                isPlaying = false;
+                document.body.classList.remove("focused");
+              });
+          }
         } else {
-          statusDiv.innerText = stations[currentStationIndex].name;
+          statusDiv.innerText = station.name;
         }
       }
+
       function playNext() {
-        isPlaying = !0;
-        setStation((currentStationIndex + 1) % stations.length);
-        document.body.classList.add("focused");
+        // If we click next, we generally want to start listening
+        isPlaying = true;
+        let nextIndex = (currentStationIndex + 1) % stations.length;
+        setStation(nextIndex);
       }
+
       function togglePlay() {
         if (isPlaying) {
           audio.pause();
-          isPlaying = !1;
-          updateBtn(!1);
+          isPlaying = false;
+          updateBtn(false);
           statusDiv.innerText = "Paused";
           document.body.classList.remove("focused");
         } else {
-          isPlaying = !0;
-          audio
-            .play()
-            .then(() => {
-              updateBtn(!0);
-              statusDiv.innerText = stations[currentStationIndex].name;
-              document.body.classList.add("focused");
-            })
-            .catch(() => {
-              statusDiv.innerText = "Error";
-              isPlaying = !1;
-              updateBtn(!1);
-            });
+          isPlaying = true;
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                updateBtn(true);
+                statusDiv.innerText = stations[currentStationIndex].name;
+                document.body.classList.add("focused");
+              })
+              .catch((error) => {
+                console.error("Play failed:", error);
+                statusDiv.innerText = "Error playing";
+                updateBtn(false);
+                isPlaying = false;
+              });
+          }
         }
       }
-      function updateBtn(e) {
-        playBtn.innerHTML = e
+
+      function updateBtn(playing) {
+        playBtn.innerHTML = playing
           ? `<svg class="icon" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>Pause`
           : `<svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Play`;
       }
-      setStation(0);
+
+      // Initialize first station name without playing
+      statusDiv.innerText = stations[0].name;
+      audio.src = stations[0].url;
       breatheText.innerText = "Inhale";
       setTimeout(() => {
         breatheText.innerText = "Exhale";
