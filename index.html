@@ -320,29 +320,41 @@
             .catch((e) => console.log(e));
         });
       }
-      const audio = document.getElementById("audio-player"),
-        playBtn = document.getElementById("play-btn"),
+      const audio = document.getElementById("audio-player");
+      // Explicitly set crossorigin to anonymous to handling CORS issues with streams
+      audio.crossOrigin = "anonymous";
+
+      const playBtn = document.getElementById("play-btn"),
         nextBtn = document.getElementById("next-btn"),
         volumeSlider = document.getElementById("volume-slider"),
         statusDiv = document.getElementById("track-status"),
         breatheText = document.getElementById("breathe-instruction");
-      let isPlaying = !1,
+
+      let isPlaying = false,
         currentStationIndex = 0;
+
+      // Updated stations with highly reliable direct stream URLs
       const stations = [
         {
           name: "Jazz24",
           url: "https://knkx-live-a.edge.audiocdn.com/6285_128k",
         },
         {
-          name: "FIP Jazz",
-          url: "https://icecast.radiofrance.fr/fipjazz-hifi.aac",
+          name: "Lofi Girl (Radio)",
+          url: "https://play.streamafrica.net/lofigirl",
         },
         {
           name: "KUSC Classical",
           url: "https://media.kusc.org/streams/128/kusc_128.mp3",
         },
-        { name: "Birdsong Radio", url: "https://edge.birdsong.fm/birdsong" },
-        { name: "Ambient Sleep", url: "https://radio.stereoscenic.com/asp-h" },
+        {
+          name: "Nature Sounds",
+          url: "https://stream-160.zeno.fm/0r0xa792kwzuv", // Alternative nature stream
+        },
+        {
+          name: "Ambient Sleep",
+          url: "https://radio.stereoscenic.com/asp-h",
+        },
       ];
 
       playBtn.addEventListener("click", togglePlay);
@@ -354,47 +366,65 @@
       // Handle stream errors
       audio.addEventListener("error", function (e) {
         console.error("Stream Error:", e);
-        statusDiv.innerText = "Stream Unavailable";
+        // Special handling for specific error types
+        if (audio.error && audio.error.code === 4) {
+          statusDiv.innerText = "Format Not Supported";
+        } else {
+          statusDiv.innerText = "Stream Unavailable";
+        }
+
+        // Auto-skip to next station if one fails after 2 seconds
+        if (isPlaying) {
+          setTimeout(() => {
+            if (
+              statusDiv.innerText.includes("Unavailable") ||
+              statusDiv.innerText.includes("Error")
+            ) {
+              playNext();
+            }
+          }, 2000);
+        }
+
         updateBtn(false);
         isPlaying = false;
         document.body.classList.remove("focused");
+      });
+
+      // Add "canplay" event to ensure we only play when ready
+      audio.addEventListener("canplay", function () {
+        if (isPlaying) {
+          const playPromise = audio.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => {
+                statusDiv.innerText = stations[currentStationIndex].name;
+                updateBtn(true);
+                document.body.classList.add("focused");
+              })
+              .catch((e) => console.error("Play promise error:", e));
+          }
+        }
       });
 
       function setStation(index) {
         currentStationIndex = index;
         const station = stations[currentStationIndex];
 
-        // Reset and load new source
+        statusDiv.innerText = "Loading " + station.name + "...";
+
+        // Reset audio element completely to avoid state issues
         audio.pause();
-        audio.src = station.url;
+        audio.removeAttribute("src");
         audio.load();
 
-        if (isPlaying) {
-          statusDiv.innerText = "Loading " + station.name + "...";
-          const playPromise = audio.play();
-
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                statusDiv.innerText = station.name;
-                updateBtn(true);
-                document.body.classList.add("focused");
-              })
-              .catch((error) => {
-                console.log("Playback prevented or failed:", error);
-                statusDiv.innerText = "Error: " + station.name;
-                updateBtn(false);
-                isPlaying = false;
-                document.body.classList.remove("focused");
-              });
-          }
-        } else {
-          statusDiv.innerText = station.name;
-        }
+        // Small timeout to allow browser to clear buffer
+        setTimeout(() => {
+          audio.src = station.url;
+          audio.load(); // Important for streams
+        }, 50);
       }
 
       function playNext() {
-        // If we click next, we generally want to start listening
         isPlaying = true;
         let nextIndex = (currentStationIndex + 1) % stations.length;
         setStation(nextIndex);
@@ -409,20 +439,18 @@
           document.body.classList.remove("focused");
         } else {
           isPlaying = true;
-          const playPromise = audio.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                updateBtn(true);
-                statusDiv.innerText = stations[currentStationIndex].name;
-                document.body.classList.add("focused");
-              })
-              .catch((error) => {
-                console.error("Play failed:", error);
-                statusDiv.innerText = "Error playing";
-                updateBtn(false);
-                isPlaying = false;
+          // If we have a source, try to play, otherwise set station
+          if (audio.src) {
+            statusDiv.innerText = "Loading...";
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch((error) => {
+                console.error("Play failed, reloading station:", error);
+                setStation(currentStationIndex);
               });
+            }
+          } else {
+            setStation(currentStationIndex);
           }
         }
       }
