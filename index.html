@@ -247,6 +247,7 @@
         opacity: 1;
       }
       input[type="range"] {
+        appearance: none;
         -webkit-appearance: none;
         width: 100px;
         background: rgba(255, 255, 255, 0.2);
@@ -321,7 +322,6 @@
         });
       }
       const audio = document.getElementById("audio-player");
-      // Explicitly set crossorigin to anonymous to handling CORS issues with streams
       audio.crossOrigin = "anonymous";
 
       const playBtn = document.getElementById("play-btn"),
@@ -330,17 +330,17 @@
         statusDiv = document.getElementById("track-status"),
         breatheText = document.getElementById("breathe-instruction");
 
-      let isPlaying = false,
-        currentStationIndex = 0;
+      let isPlaying = false;
+      let currentStationIndex = 0;
 
-      // Updated stations with highly reliable direct stream URLs
+      // Fast, reliable streams
       const stations = [
         {
           name: "Jazz24",
           url: "https://knkx-live-a.edge.audiocdn.com/6285_128k",
         },
         {
-          name: "Lofi Girl (Radio)",
+          name: "Lofi Girl",
           url: "https://play.streamafrica.net/lofigirl",
         },
         {
@@ -348,84 +348,97 @@
           url: "https://media.kusc.org/streams/128/kusc_128.mp3",
         },
         {
-          name: "Nature Sounds",
-          url: "https://stream-160.zeno.fm/0r0xa792kwzuv", // Alternative nature stream
+          name: "SomaFM Drone Zone",
+          url: "https://ice1.somafm.com/dronezone-128-mp3",
         },
         {
-          name: "Ambient Sleep",
-          url: "https://radio.stereoscenic.com/asp-h",
+          name: "Deep Space One",
+          url: "https://ice1.somafm.com/deepspaceone-128-mp3",
         },
       ];
 
-      playBtn.addEventListener("click", togglePlay);
-      nextBtn.addEventListener("click", playNext);
-      volumeSlider.addEventListener("input", (e) => {
-        audio.volume = e.target.value / 100;
-      });
+      // Load Settings from LocalStorage
+      function loadSettings() {
+        const savedVol = localStorage.getItem("serenity_volume");
+        const savedStation = localStorage.getItem("serenity_station");
 
-      // Handle stream errors
-      audio.addEventListener("error", function (e) {
-        console.error("Stream Error:", e);
-        // Special handling for specific error types
-        if (audio.error && audio.error.code === 4) {
-          statusDiv.innerText = "Format Not Supported";
+        if (savedVol !== null) {
+          audio.volume = parseFloat(savedVol);
+          volumeSlider.value = parseFloat(savedVol) * 100;
         } else {
-          statusDiv.innerText = "Stream Unavailable";
+          // Default 20%
+          audio.volume = 0.2;
+          volumeSlider.value = 20;
         }
 
-        // Auto-skip to next station if one fails after 2 seconds
-        if (isPlaying) {
-          setTimeout(() => {
-            if (
-              statusDiv.innerText.includes("Unavailable") ||
-              statusDiv.innerText.includes("Error")
-            ) {
-              playNext();
-            }
-          }, 2000);
-        }
-
-        updateBtn(false);
-        isPlaying = false;
-        document.body.classList.remove("focused");
-      });
-
-      // Add "canplay" event to ensure we only play when ready
-      audio.addEventListener("canplay", function () {
-        if (isPlaying) {
-          const playPromise = audio.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                statusDiv.innerText = stations[currentStationIndex].name;
-                updateBtn(true);
-                document.body.classList.add("focused");
-              })
-              .catch((e) => console.error("Play promise error:", e));
+        if (savedStation !== null) {
+          const idx = parseInt(savedStation);
+          if (!isNaN(idx) && idx >= 0 && idx < stations.length) {
+            currentStationIndex = idx;
           }
         }
+      }
+
+      playBtn.addEventListener("click", togglePlay);
+      nextBtn.addEventListener("click", playNext);
+
+      volumeSlider.addEventListener("input", (e) => {
+        const val = e.target.value / 100;
+        audio.volume = val;
+        localStorage.setItem("serenity_volume", val);
       });
 
-      function setStation(index) {
+      // Optimized Error Handling
+      audio.addEventListener("error", function (e) {
+        console.warn("Stream Error, retrying...", e);
+        if (isPlaying) {
+          statusDiv.innerText = "Reconnecting...";
+          // Try reloading current station once before skipping
+          setTimeout(() => {
+            if (audio.error) {
+              playNext(); // Skip if still failing
+            }
+          }, 1500);
+        }
+      });
+
+      // Play as soon as enough data is available
+      audio.addEventListener("canplay", function () {
+        if (isPlaying && audio.paused) {
+          const p = audio.play();
+          if (p) p.catch((e) => console.warn("Auto-play prevented", e));
+        }
+      });
+
+      audio.addEventListener("playing", function () {
+        statusDiv.innerText = stations[currentStationIndex].name;
+        updateBtn(true);
+        document.body.classList.add("focused");
+      });
+
+      async function setStation(index) {
         currentStationIndex = index;
+        localStorage.setItem("serenity_station", currentStationIndex);
+
         const station = stations[currentStationIndex];
+        statusDiv.innerText = "Loading..."; // Immediate feedback
 
-        statusDiv.innerText = "Loading " + station.name + "...";
-
-        // Reset audio element completely to avoid state issues
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
-
-        // Small timeout to allow browser to clear buffer
-        setTimeout(() => {
+        try {
+          // fast switch
           audio.src = station.url;
-          audio.load(); // Important for streams
-        }, 50);
+          if (isPlaying) {
+            await audio.play();
+          } else {
+            statusDiv.innerText = station.name;
+          }
+        } catch (err) {
+          console.error("Playback start error", err);
+          // Don't auto-skip immediately, let the error handler catch real network errors
+        }
       }
 
       function playNext() {
-        isPlaying = true;
+        isPlaying = true; // User intent is to play
         let nextIndex = (currentStationIndex + 1) % stations.length;
         setStation(nextIndex);
       }
@@ -439,18 +452,20 @@
           document.body.classList.remove("focused");
         } else {
           isPlaying = true;
-          // If we have a source, try to play, otherwise set station
-          if (audio.src) {
-            statusDiv.innerText = "Loading...";
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-              playPromise.catch((error) => {
-                console.error("Play failed, reloading station:", error);
+          // Resume or Load
+          if (!audio.src || audio.src === window.location.href) {
+            setStation(currentStationIndex);
+          } else {
+            const p = audio.play();
+            if (p) {
+              p.then(() => {
+                statusDiv.innerText = stations[currentStationIndex].name;
+                updateBtn(true);
+              }).catch((e) => {
+                console.warn("Resume failed, reloading", e);
                 setStation(currentStationIndex);
               });
             }
-          } else {
-            setStation(currentStationIndex);
           }
         }
       }
@@ -461,9 +476,10 @@
           : `<svg class="icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Play`;
       }
 
-      // Initialize first station name without playing
-      statusDiv.innerText = stations[0].name;
-      audio.src = stations[0].url;
+      // Init
+      loadSettings();
+      // Set initial name (don't load stream yet to save data)
+      statusDiv.innerText = stations[currentStationIndex].name;
       breatheText.innerText = "Inhale";
       setTimeout(() => {
         breatheText.innerText = "Exhale";
